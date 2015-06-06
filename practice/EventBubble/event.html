@@ -21,6 +21,29 @@ for (var i = 0; i < nodes.length; i++) {
     }, true);
 }
 
+var div = $('#appendHere');
+
+$('#clickMe').on('click', function () {
+    var that = this;
+    div.append(checkForWindow(this));
+
+    setTimeout(function () {
+        div.append(checkForWindow(this));
+        div.append('<strong>that</strong> is the ' + that.tagName + '<br/>');
+    }, 300);
+});
+
+
+function checkForWindow(elm) {
+    if (elm instanceof Window) {
+        return 'this is the Window<br/>';
+    } else if (elm.tagName) {
+        return ('this is the ' + elm.tagName + '<br/>');
+    } else {
+        return ('this is ' + elm + '<br/>');
+    }
+}
+
 $('#button2').click(function () {
     $('#button2').trigger('myCustomEvent', ['I triggered', "Hello"]);
 });
@@ -42,5 +65,9 @@ $('#containerOuter').on('myCustomEvent', function (e, data) {
     <div id="insertText" style="padding: 10px;"></div>
 </div>
 <br/>
+
+<div id="appendHere"></div>
+<button id="clickMe">Click Me</button>
+
 <div id="EventListing"></div>
 </html>
