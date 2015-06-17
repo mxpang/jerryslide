@@ -1,0 +1,13 @@
+<html>
+<script>
+
+function sleep(sleepTime) {
+       for(var start = Date.now(); Date.now() - start <= sleepTime; ) { } 
+}
+
+for( var i = 0; i < 10; i++) {
+	sleep(1000);
+	console.log(i);
+}
+</script>
+</html>
