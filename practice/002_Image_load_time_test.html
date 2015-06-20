@@ -1,0 +1,24 @@
+<html>
+<div>Button
+<button type="button" onclick = "display()">Click Me!</button>
+</div>
+
+<img id="jerry_image" src= "http://chuantu.biz/t2/10/1434770977x1822613880.jpg"></img>
+<script src="jQuery/jquery1.7.1.js"> 
+</script>
+
+<script>
+   function display() {
+   		alert("button clicked!");
+   };
+   console.time("image");
+   $("#jerry_image").load(function() {
+   	 console.timeEnd("image");
+   	 console.log("Jerry image load ok");
+   });
+
+ $(document).ready( function() {
+   console.log("ok");
+});
+</script> 
+</html>
