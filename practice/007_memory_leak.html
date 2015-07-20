@@ -1,0 +1,21 @@
+<html>
+<script>
+var theThing = null; 
+
+var replaceThing = function () {   
+
+        var priorThing = theThing; 
+
+        var unused = function () { 
+
+                  if (priorThing) {       console.log("hi");     }   
+
+       }; 
+
+       theThing = {     longStr: new Array(10000000).join('Jerry'),  // 
+
+                  someMethod: function () {       console.log("g");     }   
+       }; 
+};   
+setInterval(replaceThing, 4000); 
+</script>
