@@ -1,0 +1,19 @@
+<html>
+<script>
+var x = 10;
+foo={
+ x:20,
+ bar: function() {
+     var x = 30;
+     return this.x;
+  }
+}
+
+console.log( 
+   foo.bar(),
+   (foo.bar)(),
+   (foo.bar = foo.bar)(),
+   (foo.bar, foo.bar)()
+); // 20 20 10 10
+</script>
+</html>
