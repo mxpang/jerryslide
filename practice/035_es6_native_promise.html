@@ -1,0 +1,90 @@
+<html>
+<script>
+
+function getData(d) {
+
+	console.log(" getData called: d = " + d );
+
+	console.log(" define a new function with two arguments: resolve and reject");
+	var promiseInput  = function(resolve22, reject, addbyJerry) {
+		console.log("promiseInput function is called!!!");
+
+        for( var ele in arguments){
+            // console.log("element: " + ele); // cannot print out correctly
+        }
+        for( var i = 0; i < arguments.length; i++) {
+            // console.log("element via []: " + arguments[i]);
+        }
+        setTimeout(function() {
+            console.log(" 1 seconds later, ready to call resolve with d = " + d); 
+            // var result = resolve22(d); 
+            // Jerry test 2015-09-20 12:01PM how about call reject???
+            if( 1 == 0) {
+                try {
+                    //var result1 = reject(d);
+                }
+                catch (e) {
+                    console.log(e);
+                }
+                var result = resolve22("Jerry passed in argument");
+                console.log(" 1 seconds reached now!! in resolve22, d: " + d);
+            }
+            else {
+                reject("Jerry rejected");
+            }
+            //console.log("resolve result: " + result);
+        }, 1000);
+    };
+
+    console.log(" create a new Promise instance and pass one function as arguments!");
+    var promiseInstance = new Promise(promiseInput);
+    return promiseInstance; 
+}
+
+var x = 2;
+
+/*getData(10)
+.then(function(num1){
+    x = 1 + num1;
+    return getData(30);
+})
+.then(function(num2){
+    var y = 1 + num2;
+    return getData("Meaning of life: " + (x + y));
+})
+.then(function(answer){
+    console.log(answer);
+});*/
+
+// var t1 = getData(10); // Jerry: immediately return
+
+/*var callBack = function(callBackVar) {
+    console.log("in Jerry's call back with input: " + callBackVar);
+    x = x + callBackVar;
+}*/
+
+console.log("getData is now returned, call its then method immediately");
+
+//t1.then(callBack(5));
+
+// getData(20).then(function() { console.log("My call back is finally called ok");});
+
+var callBack = function(callBackVar) {
+    console.log("in Jerry's call back with input: " + callBackVar);
+    x = x + callBackVar;
+};
+
+/*getData(15).then(function(callBackVar) {
+    console.log("in Jerry's call back with input: " + callBackVar);
+    x = x + callBackVar;
+    }); // still does not work
+*/
+// getData(15).then(callBack); // this works
+
+var a = getData(15);
+a.then(callBack).catch(function(arg) {
+    console.log("argument passed from reject: " + arg);
+}); // this also works!!
+
+</script>
+</html>
