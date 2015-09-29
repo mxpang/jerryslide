@@ -8,6 +8,7 @@
  */
 
 //Define the global Chart Variable as a class.
+// test by Jerry for map
 window.Chart = function(context){
 
 	var chart = this;
