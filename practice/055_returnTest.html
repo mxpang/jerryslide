@@ -1,0 +1,20 @@
+<html>
+<script>
+
+function a() {
+	console.log("I was called!");
+	return "Jerry";
+}
+// var b = 1 , 2; // Uncaught SyntaxError: Unexpected number
+
+
+var b = a(), a; // in var declaration, a is discard
+console.log(b); // print Jerry, typeof b = string
+
+debugger;
+var d = (function c(){
+	return a(),a; // will call a()
+})(); // finally d = a - function, the result of a() is discard, function a reserved; 
+
+</script>
+</html>

@@ -1,0 +1,30 @@
+<html>
+<script>
+
+var test = function(var1, var2) {
+	console.log("Hello: " + var1 + " , " + var2);
+	var a = arguments;
+	var b = Array.prototype.slice.call(arguments, 0);
+	debugger;
+};
+
+test("Jerry", "Wang");
+
+var ab ={ slice:[].slice, push:[].push };
+debugger;
+
+ab[0]="hello";
+ab[1]="world";
+console.log( ab.slice().length );// 期望得到 2，但结果为 0
+ab.push("apple");
+console.log( ab.length );// 期望得到 3，但结果为 1
+console.log( ab[0], ab[1]);// 我们看到这里的 a[0] 已经被覆盖
+
+var c ={ length:2}, d ={ length:2, splice:[].splice };
+c[0]= d[0]="hello";
+c[1]= d[1]="world";
+console.log( c );
+console.log( d );
+
+</script>
+</html>
