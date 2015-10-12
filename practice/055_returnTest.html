@@ -22,7 +22,7 @@ var d = (function c(){
 
 
 (function() {
-    "use strict";
+    // "use strict";
     var e = f = 1; // Uncaught ReferenceError: f is not defined
     debugger;
 })();
@@ -32,7 +32,7 @@ var getHtmlCommentNodes = function(){
 	var cn, push;
     
     cn = document.COMMENT_NODE;
-    push =[].push;
+    push =[].push; // these two are closures
     return function f(node){
     	var result, c, l, i;
 
