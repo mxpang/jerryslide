@@ -20,6 +20,7 @@ var getActiveX = function() {
 		return { "name": "ActiveX"};
 	}
 	catch (e) {
+		// user broswer does not support ActiveX
 		return null;
 	}
 }
@@ -27,10 +28,10 @@ var getActiveX = function() {
 var getHTML5 = function() {
 	try {
 		// lots of initialization work
-		b();
 		return { "name": "HTML5"};
 	}
 	catch (e) {
+		// user broswer does not support HTML5
 		return null;
 	}
 }
@@ -41,6 +42,7 @@ var getFlash = function() {
 		return { "name": "Flash"};
 	}
 	catch (e) {
+		// user broswer does not support Flash
 		return null;
 	}
 }

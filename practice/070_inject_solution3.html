@@ -28,7 +28,7 @@ var bigFunction = function() {
 	console.log("big logic");
 }
 
-bigFunction = ( bigFunction || function() {} ).after( function() {
+bigFunction = bigFunction.after( function() {
      console.log("our own logic");
 });
 
