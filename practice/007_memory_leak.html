@@ -14,7 +14,9 @@ var replaceThing = function () {
 
        theThing = {     longStr: new Array(10000000).join('Jerry'),  // 
 
-                  someMethod: function () {       console.log("g");     }   
+                  someMethod: function () {       
+                  	console.log("g");  
+                  	debugger;   }   
        }; 
 };   
 setInterval(replaceThing, 4000); 
