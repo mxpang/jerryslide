@@ -1,0 +1,29 @@
+<html>
+<script>
+/*
+var a = "<test>Jerry&Tom</test>";
+
+var result = a.replace(/[\&<>]/g, function(s) {
+            switch (s) {
+            case "&":
+                return "&amp;";
+            case "<":
+                return "&lt;";
+            case ">":
+                return "&gt;";
+            default:
+                return s;
+            }});
+console.log(result);*/
+
+var input = "HTTPs://localhost:8080/sap/opu/odata/sap/CRM_ODATA//DocumentNoteCollection(h…t=datetime'2015-10-23T10%3A41%3A27',textLanguageID='FR',textObjectID='A002')";
+
+var result = input.replace(/^http.*CRM_ODATA\/+(.*)/gi, function(s) {
+        debugger;
+         return s;
+     });
+
+console.log(result);
+
+</script>
+</html>

@@ -1,0 +1,15 @@
+<html>
+<script src="jQuery/jquery1.7.1.js"></script>
+
+<script>
+
+debugger;
+$(document).ready(function(){
+  $.when( $.ajax("https://wiki.wdf.sap.corp/wiki/display/~I042416/Jerry_home") ).
+	then(function(data, textStatus, jqXHR){
+     	alert( jqXHR.status ); // alerts 200
+});
+});
+
+</script>
+</html>
