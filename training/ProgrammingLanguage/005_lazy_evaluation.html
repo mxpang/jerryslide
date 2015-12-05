@@ -7,15 +7,15 @@ function f(x, y, z){
 		console.log(typeof z === "function" ? z():z);
 }
 
-// f(true, function(){ console.log("y"); }, function(){ console.log("z");}); // y
-
-f(true, 3+2, 4+5);
+// f(true,  ( console.log("Big calculation1"), 3+2), console.log("Big calculation2"), 4+5);
 
 var a = function(){
+	console.log("Big calculation1");
 	return 3 + 2;
 };
 
 var b = function() {
+	console.log("Big calculation2");
 	return 4 + 5;
 }
 f(true, a, b);
