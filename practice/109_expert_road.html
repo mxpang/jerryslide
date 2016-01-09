@@ -115,6 +115,7 @@ function foo9() {
   bar9();
 }
 debugger;
+var f = new Function('a', 'alert(a)'); f('test'); // 将会弹出窗口显示test
 foo9();
 
 </script>

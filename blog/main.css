@@ -1,0 +1,72 @@
+#home { margin: 0px auto; max-width:960px; 
+        _margin: 0px 30px; text-align:left;}
+#navigator {  height:auto; background:#222; overflow:hidden; *zoom:1;}
+#navList { float:left; }
+   #navList li { display: inline; float: none; font-size:16px; }
+.blogStats { font-size:12px; }
+
+#jumpToAside { display:none; background:#00f; color:#fff;
+   padding:5px; position:fixed; right:0;top:0; width:1em;
+   line-height:1;}
+#jumpToAside:hover, #jumpToAside:active, #jumpToAside:focus
+{ color:#ff0; }
+
+#blogTitle{ overflow:hidden; *zoom:1; }
+#blogTitle .subtitle{ float:right; }
+#sideBar { width: 20%; border:none; padding:0;}
+#sideBar h3{ padding-left:8px; background-color:#666; }
+#sideBarMain { padding-left:8px; }
+#mainContent { margin-left: auto; width:78%; }
+.forFlow { margin:auto; }
+
+body { background-color: #002319; color: #fff; font-size: 14px;
+       font-family:微软雅黑,sans-serif; text-align:center;}
+h1 ,h2 ,h3 ,h4 ,h5 ,h6 ,th, .feedbackCon, .blogStats { color: #eee; }
+#main { border:1px solid #e5e5e5; border-top:none; }
+.day { margin: 20px 0px; }
+.postTitle { padding-left: 16px; font-size:16px; border-bottom-color:#666;}
+.postBody, .postCon {padding:0 8px 0 12px; border-bottom:1px solid #666; }
+@media (max-width:320px){
+   .postBody, .postCon{padding:0 0 0 3px;}
+}
+.postText2 { color:#ddd; }
+.postDesc { padding-right: 20px; }
+a, .postCon a, .postBody a, .feedbackCon a { color: #0cf; }
+a:hover,a:active,a:focus { color: #ff8; text-decoration: none; }
+.bq_post_comment{ color:#ccc; }
+#navigator, #MySignature, .day, .post { border: 1px solid #e5e5e5; border-radius: 8px; box-shadow: 2px 2px 10px #aaa; }
+#navigator { border-radius: 8px 8px 0px 0px;}
+.post { border-right:none; padding-top: 1px; border-top:none; border-radius: 0px 0px 8px 8px; }
+#MySignature { margin-top: 50px; padding: 10px 10px 10px 80px; background: url("http://images.cnblogs.com/cnblogs_com/mgen/309037/o_sighead.png") no-repeat 15px 50%; box-shadow: 0px 0px 15px #aaa; }
+   #MySignature div { line-height: 25px; }
+
+@media (max-width:990px) {
+    #home{ margin:0 15px; }
+}
+
+@media (max-width:640px) {
+	#sideBar, #mainContent{ width:100%;}
+	.post{ border-left:none; }
+	#jumpToAside { display:inline; float:right; }
+	#blogTitle .subtitle{ float:none; }
+}
+
+.cnblogs_code, .cnblogs_code div { color: #000; font-family: consolas, monospace, sans-serif; }
+img{ max-width:100%; }
+
+/*-------------------------------------------
+#div_digg {
+position: fixed;
+bottom: 0;
+left: 5px;
+width:50px;
+margin-left:auto;
+border: 1px solid #eee;
+border-radius: 5px;
+padding: 5px;
+border:none; border-radius:8px; box-shadow:2px 2px 10px #aaa;
+}
+
+#div_digg .diggit, #div_digg .buryit{ float: none; 
+margin-left:auto; border-radius:4px;}
+--------------------------------------------*/
