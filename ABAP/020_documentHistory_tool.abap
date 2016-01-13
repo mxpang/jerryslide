@@ -12,8 +12,6 @@ public section.
     returning
       value(RT_DOC_LINKS) type CRMT_DOC_FLOW_DB_WRKT .
   methods GET_HISTORIES_WITH_NUMBER
-    importing
-      !IV_NUM type INT4
     returning
       value(RT_DOC_LINKS) type CRMT_DOC_FLOW_DB_WRKT .
   methods GET_HISTORIES_OPT
@@ -37,6 +35,28 @@ public section.
   methods LINK
     importing
       !IT_TASK_GUIDS type CRMT_OBJECT_GUID_TAB .
+  methods GET_WHOLE_ORIGINAL
+    importing
+      !IT_TASK_GUIDS type CRMT_OBJECT_GUID_TAB
+    returning
+      value(RT_RESULT) type CRMT_ODATA_DOC_HISTORY_T .
+  methods GET_WHOLE_OPT
+    importing
+      !IT_TASK_GUIDS type CRMT_OBJECT_GUID_TAB
+    changing
+      !CT_ENTITYSET type ZCRMT_JERRY_DOC_HISTORY_T .
+  methods COMPARE_HISTORY
+    importing
+      !IT_RESULT_ORIGIN type CRMT_ODATA_DOC_HISTORY_T
+      !IT_RESULT_OPT type ZCRMT_JERRY_DOC_HISTORY_T
+    returning
+      value(RV_EQUAL) type ABAP_BOOL .
+  methods PRINT_HISTORY
+    importing
+      !IT_HISTORY type ZCRMT_JERRY_DOC_HISTORY_T .
+  methods COMPARE_100
+    returning
+      value(RV_EQUAL) type ABAP_BOOL .
 protected section.
 private section.
 
@@ -79,18 +99,72 @@ CLASS ZCL_CRM_TASK_DOC_HISTORY_TOOL IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_TASK_DOC_HISTORY_TOOL->COMPARE_100
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RV_EQUAL                       TYPE        ABAP_BOOL
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD compare_100.
+    DATA: lt_task    TYPE crmt_object_guid_tab,
+          lt_result1 TYPE crmt_odata_doc_history_t,
+          lt_result2 TYPE zcrmt_jerry_doc_history_t,
+          lv_equal   TYPE abap_bool.
+
+    SELECT task_guid INTO TABLE lt_task FROM ztask_with_follo.
+    lt_result1 = get_whole_original( lt_task ).
+
+    get_whole_opt( EXPORTING it_task_guids = lt_task CHANGING ct_entityset = lt_result2 ).
+
+    rv_equal = compare_history( it_result_origin = lt_result1 it_result_opt = lt_result2 ).
+
+    "print_history( lt_result2 ).
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_TASK_DOC_HISTORY_TOOL->COMPARE_HISTORY
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_RESULT_ORIGIN               TYPE        CRMT_ODATA_DOC_HISTORY_T
+* | [--->] IT_RESULT_OPT                  TYPE        ZCRMT_JERRY_DOC_HISTORY_T
+* | [<-()] RV_EQUAL                       TYPE        ABAP_BOOL
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method COMPARE_HISTORY.
+    rv_equal = abap_false.
+
+    CHECK lines( it_result_origin ) = lines( it_result_opt ).
+
+    LOOP AT it_result_opt ASSIGNING FIELD-SYMBOL(<opt>).
+      LOOP AT <opt>-documenthistories ASSIGNING FIELD-SYMBOL(<doc>).
+         READ TABLE it_result_origin WITH KEY guid = <doc>-guid RELATIONSHIP = <doc>-relationship TRANSPORTING NO FIELDS.
+         IF sy-subrc <> 0.
+            RETURN.
+         ENDIF.
+      ENDLOOP.
+    ENDLOOP.
+
+    rv_equal = abap_true.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
 * | Instance Public Method ZCL_CRM_TASK_DOC_HISTORY_TOOL->CONSTRUCTOR
 * +-------------------------------------------------------------------------------------------------+
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   method CONSTRUCTOR.
-    append 'FA163EE56C3A1EE5AD89008F1DBB0B45' TO  mt_guid_tabs. "31318"
-    append 'FA163EE56C3A1EE5ADA0457B58202108' tO  mt_guid_tabs. "31331
-    append 'FA163EE56C3A1EE5A5E673B95A344AC5' TO  mt_guid_tabs. "29944
-    APPEND 'FA163EE56C3A1EE5AD8901590BA7CB46' TO mt_guid_tabs.  "31319
-    APPEND 'FA163EE56C3A1EE5ADA0AD5FB303C1DF' TO mt_guid_tabs.  "31332
-    APPEND 'FA163EE56C3A1EE5ADA0AE5AB83B01E1' TO mt_guid_Tabs.  "31333
-    append 'FA163EE56C3A1EE5ADA0D8608C98A232' TO mt_guid_tabs.  "31335
-    append 'FA163EE56C3A1EE5ADA0D92F87C10232' TO mt_guid_tabs.  "31336
+*    append 'FA163EE56C3A1EE5AD89008F1DBB0B45' TO  mt_guid_tabs. "31318"
+*    append 'FA163EE56C3A1EE5ADA0457B58202108' tO  mt_guid_tabs. "31331
+*    append 'FA163EE56C3A1EE5A5E673B95A344AC5' TO  mt_guid_tabs. "29944
+*    APPEND 'FA163EE56C3A1EE5AD8901590BA7CB46' TO mt_guid_tabs.  "31319
+*    APPEND 'FA163EE56C3A1EE5ADA0AD5FB303C1DF' TO mt_guid_tabs.  "31332
+*    APPEND 'FA163EE56C3A1EE5ADA0AE5AB83B01E1' TO mt_guid_Tabs.  "31333
+*    append 'FA163EE56C3A1EE5ADA0D8608C98A232' TO mt_guid_tabs.  "31335
+*    append 'FA163EE56C3A1EE5ADA0D92F87C10232' TO mt_guid_tabs.  "31336
+    DATA: lt_guid TYPE STANDARD TABLE OF ztask_with_follo.
+
+    SELECT * INTO TABLE lt_guid FROM ztask_with_follo.
+
+    LOOP AT lt_guid ASSIGNING FIELD-SYMBOL(<guid>).
+       INSERT <guid>-task_guid INTO TABLE mt_guid_tabs.
+    ENDLOOP.
   endmethod.
 
 
@@ -333,14 +407,13 @@ CLASS ZCL_CRM_TASK_DOC_HISTORY_TOOL IMPLEMENTATION.
 * <SIGNATURE>---------------------------------------------------------------------------------------+
 * | Instance Public Method ZCL_CRM_TASK_DOC_HISTORY_TOOL->GET_HISTORIES_WITH_NUMBER
 * +-------------------------------------------------------------------------------------------------+
-* | [--->] IV_NUM                         TYPE        INT4
 * | [<-()] RT_DOC_LINKS                   TYPE        CRMT_DOC_FLOW_DB_WRKT
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   method GET_HISTORIES_WITH_NUMBER.
 
     DATA: lt_guid LIKE mt_guid_tabs.
 
-    LOOP AT mt_guid_tabs ASSIGNING FIELD-SYMBOL(<guid>) FROM 1 TO iv_num.
+    LOOP AT mt_guid_tabs ASSIGNING FIELD-SYMBOL(<guid>).
        APPEND <guid> TO lt_guid.
     ENDLOOP.
 
@@ -358,6 +431,71 @@ CLASS ZCL_CRM_TASK_DOC_HISTORY_TOOL IMPLEMENTATION.
     rv_result = mv_number_range.
     ADD 1 TO mv_number_range.
   endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_TASK_DOC_HISTORY_TOOL->GET_WHOLE_OPT
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_TASK_GUIDS                  TYPE        CRMT_OBJECT_GUID_TAB
+* | [<-->] CT_ENTITYSET                   TYPE        ZCRMT_JERRY_DOC_HISTORY_T
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method GET_WHOLE_OPT.
+    DATA: lo_initial_loader        TYPE REF TO cl_crm_odata_initial_loader,
+          ls_line LIKE LINE OF ct_entityset.
+
+    CREATE OBJECT lo_initial_loader.
+
+    LOOP AT it_task_guids ASSIGNING FIELD-SYMBOL(<guid>).
+       ls_line-guid = <guid>.
+       APPEND ls_line TO ct_entityset.
+    ENDLOOP.
+
+    lo_initial_loader->if_crm_odata_initial_loader~get_doc_histories( CHANGING ct_entityset = ct_entityset ).
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_TASK_DOC_HISTORY_TOOL->GET_WHOLE_ORIGINAL
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_TASK_GUIDS                  TYPE        CRMT_OBJECT_GUID_TAB
+* | [<-()] RT_RESULT                      TYPE        CRMT_ODATA_DOC_HISTORY_T
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD get_whole_original.
+    DATA: lr_task_impl   TYPE REF TO cl_crm_task_rt,
+          ls_filter      TYPE /iwbep/t_mgw_select_option,
+          lt_doc_history TYPE cl_crm_task_mpc=>tt_documenthistory,
+          lt_key_tab     TYPE /iwbep/t_mgw_name_value_pair,
+          lt_path        TYPE /iwbep/t_mgw_navigation_path,
+          lt_order       TYPE /iwbep/t_mgw_sorting_order,
+          lo_context     TYPE REF TO /iwbep/if_mgw_req_entityset,
+          ls_page        TYPE /iwbep/s_mgw_paging.
+
+    CREATE OBJECT lr_task_impl.
+
+    LOOP AT it_task_guids ASSIGNING FIELD-SYMBOL(<guid>).
+      CLEAR: lt_key_tab.
+      DATA(ls_key) = VALUE /iwbep/s_mgw_name_value_pair( name = 'Guid' value = <guid> ).
+      APPEND ls_key TO lt_key_tab.
+
+      CLEAR: lt_doc_history.
+      CALL METHOD lr_task_impl->get_document_history
+        EXPORTING
+          iv_entity_name           = 'dummy'
+          iv_entity_set_name       = 'dummy'
+          iv_source_name           = ''
+          it_filter_select_options = ls_filter
+          it_key_tab               = lt_key_tab
+          is_paging                = ls_page
+          it_navigation_path       = lt_path
+          it_order                 = lt_order
+          iv_filter_string         = ''
+          iv_search_string         = ''
+          io_tech_request_context  = lo_context
+        IMPORTING
+          et_entityset             = lt_doc_history.
+      APPEND LINES OF lt_doc_history TO rt_result.
+    ENDLOOP.
+  ENDMETHOD.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
@@ -441,6 +579,36 @@ CLASS ZCL_CRM_TASK_DOC_HISTORY_TOOL IMPLEMENTATION.
     COMMIT WORK AND WAIT.
 
   ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_TASK_DOC_HISTORY_TOOL->PRINT_HISTORY
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_HISTORY                     TYPE        ZCRMT_JERRY_DOC_HISTORY_T
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method PRINT_HISTORY.
+    DATA: lt_header TYPE STANDARD TABLE OF crmd_orderadm_h,
+          lv_object_id TYPE crmd_orderadm_h-object_id.
+
+    SELECT * INTO TABLE lt_header FROM crmd_orderadm_h FOR ALL ENTRIES IN it_history
+       WHERE guid = it_history-guid.
+
+    LOOP AT it_history ASSIGNING FIELD-SYMBOL(<history>).
+       READ TABLE lt_header ASSIGNING FIELD-SYMBOL(<header>) WITH KEY guid = <history>-guid.
+       WRITE: / 'document id: ' , <header>-object_id.
+       "SELECT * APPENDING TABLE lt_header FROM crmd_orderadm_h FOR ALL ENTRIES IN <history>-documenthistories
+       "    WHERE guid = <history>-documenthistories-guid.
+       LOOP AT <history>-documenthistories ASSIGNING FIELD-SYMBOL(<detail>).
+          READ TABLE lt_header ASSIGNING FIELD-SYMBOL(<header2>) WITH KEY guid = <detail>-guid.
+          IF sy-subrc = 0.
+             lv_object_id = <header2>-object_id.
+          ELSE.
+             SELECT SINGLE object_id INTO lv_object_id FROM crmd_orderadm_h WHERE guid = <detail>-guid.
+          ENDIF.
+          WRITE: / 'history id: ', lv_object_id COLOR COL_TOTAL, 'type: ' , <detail>-relationship COLOR COL_GROUP.
+       ENDLOOP.
+    ENDLOOP.
+  endmethod.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
