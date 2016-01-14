@@ -57,6 +57,7 @@ public section.
   methods COMPARE_100
     returning
       value(RV_EQUAL) type ABAP_BOOL .
+  methods COMPARE_ORDER_READ .
 protected section.
 private section.
 
@@ -143,6 +144,72 @@ CLASS ZCL_CRM_TASK_DOC_HISTORY_TOOL IMPLEMENTATION.
 
     rv_equal = abap_true.
   endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_TASK_DOC_HISTORY_TOOL->COMPARE_ORDER_READ
+* +-------------------------------------------------------------------------------------------------+
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD compare_order_read.
+    DATA: lt_guid              TYPE crmt_object_guid_tab,
+          lt_orderadm_h        TYPE crmt_orderadm_h_wrkt,
+          lt_orderadm_h_db     TYPE crmt_orderadm_h_du_tab,
+          lt_requested_objects TYPE crmt_object_name_tab,
+          lt_exception         TYPE  crmt_exception_t,
+          ls_result1           TYPE CRMT_ODATA_DOC_HISTORY,
+          ls_result2           TYPE CRMT_ODATA_DOC_HISTORY.
+
+    CONSTANTS:  lc_orderadm_h    TYPE  crmt_object_name  VALUE 'ORDERADM_H'.
+
+    SELECT guid INTO TABLE lt_guid FROM crmd_orderadm_h UP TO 2 ROWS.
+
+    INSERT lc_orderadm_h INTO TABLE lt_requested_objects.
+
+    WRITE: / 'CRM_ORDER_READ...'.
+    me->start( ).
+    CALL FUNCTION 'CRM_ORDER_READ'
+      EXPORTING
+        it_header_guid       = lt_guid
+        it_requested_objects = lt_requested_objects
+        iv_no_auth_check     = 'X'
+      IMPORTING
+        et_orderadm_h        = lt_orderadm_h
+        et_exception         = lt_exception
+      EXCEPTIONS
+        document_not_found   = 1
+        error_occurred       = 2
+        document_locked      = 3
+        no_change_authority  = 4
+        no_display_authority = 5
+        no_change_allowed    = 6
+        OTHERS               = 7.
+    stop( ).
+
+    WRITE: / 'CRM_ORDERADM_H_SELECT_M_DB ...'.
+    start( ).
+    CALL FUNCTION 'CRM_ORDERADM_H_SELECT_M_DB'
+      EXPORTING
+        it_guid          = lt_guid
+      IMPORTING
+        et_orderadm_h_db = lt_orderadm_h_db
+      EXCEPTIONS
+        parameter_error  = 1
+        record_not_found = 2
+        OTHERS           = 3.
+    stop( ).
+
+    ASSERT lines( lt_orderadm_h ) = lines( lt_orderadm_h_db ).
+
+    LOOP AT lt_orderadm_h ASSIGNING FIELD-SYMBOL(<origin>).
+       READ TABLE lt_orderadm_h_db ASSIGNING FIELD-SYMBOL(<db>) WITH KEY guid = <origin>-guid.
+       ASSERT sy-subrc = 0.
+       MOVE-CORRESPONDING <origin> TO ls_result1.
+       MOVE-CORRESPONDING <db> TO ls_result2.
+       ASSERT ls_result1 = ls_result2.
+    ENDLOOP.
+
+
+  ENDMETHOD.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
