@@ -21,6 +21,10 @@ var rotate = function(nums, k) {
   /* Jerry 2016-01-22 10:34AM - 因此不能采取赋值的方式，而是
   调用自身引用对象的方法
   nums = tmp.concat(nums);
+
+  按引用传递就是函数外的变量和函数里的参数引用同一块地址，它们的值无论什么情况都一起变动。而代码中当参数指向一个新的对象后，和函数外的变量脱离关系了，所以JavaScript不是按引用传递的；可以对比下c、c++等语言，它们如果按引用传递的话，就会一起变化，就算参数被重新赋值
+
+
   */
   Array.prototype.unshift.apply(nums, tmp);
 };
