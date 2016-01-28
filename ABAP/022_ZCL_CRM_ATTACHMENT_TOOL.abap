@@ -12,16 +12,6 @@ public section.
     END OF lty_object_key .
   types:
     ltty_object_key TYPE TABLE OF lty_object_key .
-  types:
-    BEGIN OF ty_order_atta_link,
-      order_guid   TYPE sibfboriid,
-      order_bortype   TYPE sibftypeid,
-      atta_type      TYPE skwf_ioty,
-      attid_lo     TYPE sdok_docid,
-      attid_ph     TYPE sdok_docid,
-      END OF ty_order_atta_link .
-  types:
-    tt_order_atta_link TYPE STANDARD TABLE OF ty_order_atta_link .
 
   data MT_BP_TEST_DATA type LTTY_OBJECT_KEY .
 
@@ -76,14 +66,44 @@ public section.
     returning
       value(RS_RESULT) type TADIR .
   methods COMPARE_VALUE_REF .
+  methods CREATE_DOC
+    importing
+      !IV_TEXT type STRING
+      !IV_BOR_TYPE type STRING
+      !IV_GUID type CRMT_OBJECT_GUID
+      !IV_FILE_NAME type STRING .
 protected section.
 private section.
 
+  types:
+    BEGIN OF ty_order_atta_link,
+      order_guid   TYPE sibfboriid,
+      order_bortype   TYPE sibftypeid,
+      atta_type      TYPE skwf_ioty,
+      attid_lo     TYPE sdok_docid,
+      attid_ph     TYPE sdok_docid,
+      END OF ty_order_atta_link .
+  types:
+    BEGIN OF ty_user_name,
+             user_name TYPE bapibname-bapibname,
+             fullname TYPE AD_NAMTEXT,
+          END OF ty_user_name .
+  types:
+    tt_user_name TYPE STANDARD TABLE OF ty_user_name WITH KEY user_name .
+  types:
+    tt_order_atta_link TYPE STANDARD TABLE OF ty_order_atta_link .
+
+  data MT_USER_NAME type TT_USER_NAME .
   data MT_ORDER_ATTA_LINK type TT_ORDER_ATTA_LINK .
   data MV_START type I .
   data MV_END type I .
   data MV_REGULAR_TEST_NUM type INT4 value 10000 ##NO_TEXT.
 
+  methods GET_CREATED_BY
+    importing
+      !IV_USER_NAME type BAPIBNAME-BAPIBNAME
+    returning
+      value(RV_FULLNAME) type AD_NAMTEXT .
   methods GET_ALL_IOS_WITH_PROPERTIES
     importing
       !IT_LINKS type OBL_T_LINK
@@ -213,6 +233,79 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->CREATE_DOC
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_TEXT                        TYPE        STRING
+* | [--->] IV_BOR_TYPE                    TYPE        STRING
+* | [--->] IV_GUID                        TYPE        CRMT_OBJECT_GUID
+* | [--->] IV_FILE_NAME                   TYPE        STRING
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method CREATE_DOC.
+    DATA:ls_bo              TYPE sibflporb,
+         ls_prop            TYPE LINE OF sdokproptys,
+         lt_prop            TYPE sdokproptys,
+         lt_properties_attr TYPE crmt_attr_name_value_t,
+         ls_file_info       TYPE sdokfilaci,
+         lt_file_info       TYPE sdokfilacis,
+         lt_file_content    TYPE sdokcntbins,
+         lv_length          TYPE i,
+         lv_file_xstring    TYPE xstring,
+         ls_loio            TYPE skwf_io,
+         ls_phio            TYPE skwf_io,
+         ls_error           TYPE skwf_error.
+
+    ls_prop-name = 'DESCRIPTION'.
+    ls_prop-value = 'created by Tool'.
+    APPEND ls_prop TO lt_prop.
+
+    ls_prop-name = 'KW_RELATIVE_URL'.
+    ls_prop-value = iv_file_name.
+    APPEND ls_prop TO lt_prop.
+
+    ls_prop-name = 'LANGUAGE'.
+    ls_prop-value = sy-langu.
+    APPEND ls_prop TO lt_prop.
+
+    CALL FUNCTION 'ECATT_CONV_STRING_TO_XSTRING'
+       EXPORTING
+          IM_STRING = iv_text
+       IMPORTING
+          EX_XSTRING = lv_file_xstring.
+
+    CALL FUNCTION 'SCMS_XSTRING_TO_BINARY'
+      EXPORTING
+        buffer        = lv_file_xstring
+      IMPORTING
+        output_length = lv_length
+      TABLES
+        binary_tab    = lt_file_content.
+
+    ls_file_info-binary_flg = 'X'.
+    ls_file_info-file_name = iv_file_name.
+    ls_file_info-file_size = lv_length.
+    ls_file_info-mimetype = 'text/html'."'image/jpeg'.
+    APPEND ls_file_info TO lt_file_info.
+
+    ls_bo-INSTID = iv_guid.
+    ls_bo-typeid = iv_bor_type.
+    ls_bo-catid = 'BO'.
+
+    CALL METHOD cl_crm_documents=>create_with_table
+      EXPORTING
+        business_object     = ls_bo
+        properties          = lt_prop
+        properties_attr     = lt_properties_attr
+        file_access_info    = lt_file_info
+        file_content_binary = lt_file_content
+        raw_mode            = 'X'
+      IMPORTING
+        loio                = ls_loio
+        phio                = ls_phio
+        error               = ls_error.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
 * | Instance Private Method ZCL_CRM_ATTACHMENT_TOOL->GET_ALL_IOS_WITH_PROPERTIES
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] IT_LINKS                       TYPE        OBL_T_LINK
@@ -291,6 +384,7 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
         physical_objects = et_ip_links.
 
     LOOP AT et_ip_links ASSIGNING <phio>.
+
       APPEND INITIAL LINE TO lt_phios ASSIGNING <io>.
       <io>-class  = <phio>-class_ph.
       <io>-objid  = <phio>-objid_ph.
@@ -375,8 +469,7 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
           lt_ios              TYPE skwf_ios,
           lt_iplinks          TYPE sdoklogphys,
           lt_property_result  TYPE crm_kw_propst,
-          lt_file_access_info TYPE skwf_cpprps,
-          lv_dummy.
+          lt_file_access_info TYPE skwf_cpprps.
 
     lt_links = get_links( it_objects ).
 
@@ -392,12 +485,10 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
     FIELD-SYMBOLS: <property_result>  LIKE LINE OF lt_property_result,
                    <order_att_link>   LIKE LINE OF mt_order_atta_link,
                    <file_access_info> LIKE LINE OF lt_file_access_info,
-                   <ip_link> LIKE LINE OF lt_iplinks.
+                   <ip_link>          LIKE LINE OF lt_iplinks.
 
     DATA: ls_attachment TYPE crmt_odata_task_attachment,
           ls_property   TYPE sdokproptl,
-          ls_bupa_addr  TYPE bapiaddr3,
-          lt_return     TYPE bapirettab,
           lv_username   TYPE bapibname-bapibname.
 
     LOOP AT lt_property_result ASSIGNING <property_result> WHERE objtype = 'P'.
@@ -430,21 +521,12 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
       READ TABLE <property_result>-properties WITH KEY name = 'CREATED_BY' INTO ls_property. "#EC *
       IF sy-subrc = 0.
         lv_username = ls_property-value.
-        CALL FUNCTION 'BAPI_USER_GET_DETAIL'
-          EXPORTING
-            username = lv_username
-          IMPORTING
-            address  = ls_bupa_addr
-          TABLES
-            return   = lt_return.
-        IF ls_bupa_addr-fullname IS NOT INITIAL.
-          ls_attachment-created_by = ls_bupa_addr-fullname.
-        ELSE.
-          ls_attachment-created_by = ls_property-value.
-        ENDIF.
+        ls_attachment-created_by = get_created_by( lv_username ).
       ENDIF.
 
-      ls_attachment-url = get_url( is_properties = <property_result> ).
+      IF <property_result>-class = crmkw_class-phio_url.
+         ls_attachment-url = get_url( is_properties = <property_result> ).
+      ENDIF.
       ls_attachment-typeid = <order_att_link>-order_bortype.
       ls_attachment-instid = <order_att_link>-order_guid.
 
@@ -512,6 +594,42 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_CRM_ATTACHMENT_TOOL->GET_CREATED_BY
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_USER_NAME                   TYPE        BAPIBNAME-BAPIBNAME
+* | [<-()] RV_FULLNAME                    TYPE        AD_NAMTEXT
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD get_created_by.
+    DATA: ls_bupa_addr TYPE bapiaddr3,
+          lt_return    TYPE bapirettab.
+
+    FIELD-SYMBOLS: <user_name> TYPE ty_user_name.
+    READ TABLE mt_user_name ASSIGNING <user_name> WITH KEY user_name = iv_user_name.
+    IF sy-subrc = 0.
+      rv_fullname = <user_name>-fullname.
+      RETURN.
+    ENDIF.
+
+    APPEND INITIAL LINE TO mt_user_name ASSIGNING <user_name>.
+
+    CALL FUNCTION 'BAPI_USER_GET_DETAIL'
+      EXPORTING
+        username = iv_user_name
+      IMPORTING
+        address  = ls_bupa_addr
+      TABLES
+        return   = lt_return.
+
+    <user_name>-user_name = iv_user_name.
+    IF ls_bupa_addr-fullname IS INITIAL.
+      ls_bupa_addr-fullname = iv_user_name.
+    ENDIF.
+    rv_fullname = <user_name>-fullname = ls_bupa_addr-fullname.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
 * | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->GET_IOS_BY_KEY
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] IV_KEY                         TYPE        SIBFBORIID
@@ -529,7 +647,7 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
 * | [--->] IT_OBJECTS                     TYPE        LTTY_OBJECT_KEY
 * | [<-()] RT_LINKS_A                     TYPE        OBL_T_LINK
 * +--------------------------------------------------------------------------------------</SIGNATURE>
-  method GET_LINKS.
+  METHOD get_links.
     DATA: lv_bor_type TYPE sibftypeid.
     FIELD-SYMBOLS: <object> LIKE LINE OF it_objects.
 
@@ -538,16 +656,14 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
     READ TABLE it_objects ASSIGNING <object> INDEX 1.
 
     lv_bor_type = <object>-typeid.
-    SELECT brelguid instid_a typeid_a logsys_a catid_a arch_a
-      instid_b typeid_b logsys_b catid_b arch_b reltype utctime homesys
-            INTO CORRESPONDING FIELDS OF TABLE rt_links_a
-             FROM skwg_brel
+    SELECT instid_a typeid_a  instid_b typeid_b  catid_b utctime
+            INTO CORRESPONDING FIELDS OF TABLE rt_links_a FROM skwg_brel
              FOR ALL ENTRIES IN it_objects
              WHERE instid_a  = it_objects-instid AND
                    typeid_a      = lv_bor_type AND
                    catid_a  = 'BO' AND
                    reltype  = 'WCM_LINK'.
-  endmethod.
+  ENDMETHOD.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
@@ -598,10 +714,9 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
 * | [<-()] RV_URL                         TYPE        STRING
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD get_url.
-    DATA: lt_url TYPE sdokcompurls,
-          ls_url TYPE sdokcomurl.
+    DATA: lt_url TYPE sdokcompurls.
 
-    CHECK is_properties-class = crmkw_class-phio_url.  "document of type URL
+    FIELD-SYMBOLS:<url> TYPE sdokcomurl.
 
     CALL FUNCTION 'SDOK_PHIO_GET_URL_FOR_GET'
       EXPORTING
@@ -622,10 +737,8 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
       RETURN.
     ENDIF.
 
-    READ TABLE lt_url INTO ls_url INDEX 1.
-    IF sy-subrc = 0.
-      rv_url = ls_url-url.
-    ENDIF.
+    READ TABLE lt_url ASSIGNING <url> INDEX 1.
+    rv_url = <url>-url.
 
   ENDMETHOD.
 
