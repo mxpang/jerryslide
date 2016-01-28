@@ -13,8 +13,6 @@ public section.
   types:
     ltty_object_key TYPE TABLE OF lty_object_key .
 
-  data MT_BP_TEST_DATA type LTTY_OBJECT_KEY .
-
   methods COMPARE_READ_RESULT
     importing
       !IT_ORIGIN type CRMT_ODATA_TASK_ATTACHMENTT
@@ -27,7 +25,6 @@ public section.
     returning
       value(RT_ATTACHMENTS) type CRMT_ODATA_TASK_ATTACHMENTT .
   methods GET_STORAGE_BY_FM .
-  methods CONSTRUCTOR .
   methods GET_ATTACHMENT_BY_TASK_GUID
     importing
       !IV_TASK_GUID type CRMT_OBJECT_GUID
@@ -72,6 +69,25 @@ public section.
       !IV_BOR_TYPE type STRING
       !IV_GUID type CRMT_OBJECT_GUID
       !IV_FILE_NAME type STRING .
+  methods SEQUENTIAL_READ
+    importing
+      !IV_LOOP_TIME type INT4
+      !IT_ORDERS type LTTY_OBJECT_KEY
+    returning
+      value(RT_ATTACHMENTS) type CRMT_ODATA_TASK_ATTACHMENTT .
+  methods PARALLEL_READ
+    importing
+      !IV_GROUP_NUMBER type INT4
+      !IT_ORDERS type LTTY_OBJECT_KEY
+    returning
+      value(RT_ATTACHMENTS) type CRMT_ODATA_TASK_ATTACHMENTT .
+  methods READ_FINISHED
+    importing
+      !P_TASK type CLIKE .
+  methods CONSTRUCTOR .
+  methods GET_TESTDATA
+    returning
+      value(RT_DATA) type CRMT_OBJECT_KEY_T .
 protected section.
 private section.
 
@@ -93,6 +109,9 @@ private section.
   types:
     tt_order_atta_link TYPE STANDARD TABLE OF ty_order_atta_link .
 
+  data MT_ATTACHMENT_RESULT type CRMT_ODATA_TASK_ATTACHMENTT .
+  data MT_BP_TEST_DATA type LTTY_OBJECT_KEY .
+  data MV_FINISHED type INT4 .
   data MT_USER_NAME type TT_USER_NAME .
   data MT_ORDER_ATTA_LINK type TT_ORDER_ATTA_LINK .
   data MV_START type I .
@@ -210,24 +229,7 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
 * +-------------------------------------------------------------------------------------------------+
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   method CONSTRUCTOR.
-    DATA: lt_guid TYPE STANDARD TABLE OF ztask_with_follo.
 
-    SELECT * INTO TABLE lt_guid FROM ztask_with_follo.
-
-    FIELD-SYMBOLS: <item> LIKE LINE OF mt_bp_test_data.
-
-    LOOP AT lt_guid ASSIGNING FIELD-SYMBOL(<guid>).
-       APPEND INITIAL LINE TO mt_bp_test_data ASSIGNING <item>.
-       <item>-typeid = 'BUS2000125'.
-       <item>-instid = <guid>-task_guid .
-    ENDLOOP.
-
-    APPEND INITIAL LINE TO mt_bp_test_data ASSIGNING FIELD-SYMBOL(<item1>).
-    <item1>-typeid = 'BUS2000125'.
-    <item1>-instid = 'FA163EE56C3A1ED5AE9AE011B059611E'.
-
-    APPEND INITIAL LINE TO mt_bp_test_data ASSIGNING FIELD-SYMBOL(<seconditem>).
-    <seconditem>-instid = 'FA163EE56C3A1EE5AD89008F1DBB0B45'.
 
   endmethod.
 
@@ -708,6 +710,35 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->GET_TESTDATA
+* +-------------------------------------------------------------------------------------------------+
+* | [<-()] RT_DATA                        TYPE        CRMT_OBJECT_KEY_T
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method GET_TESTDATA.
+    DATA: lt_guid TYPE STANDARD TABLE OF ztask_with_follo.
+
+    SELECT * INTO TABLE lt_guid FROM ztask_with_follo.
+
+    FIELD-SYMBOLS: <item> LIKE LINE OF mt_bp_test_data.
+
+    LOOP AT lt_guid ASSIGNING FIELD-SYMBOL(<guid>).
+       APPEND INITIAL LINE TO mt_bp_test_data ASSIGNING <item>.
+       <item>-typeid = 'BUS2000125'.
+       <item>-instid = <guid>-task_guid .
+    ENDLOOP.
+
+    APPEND INITIAL LINE TO mt_bp_test_data ASSIGNING FIELD-SYMBOL(<item1>).
+    <item1>-typeid = 'BUS2000125'.
+    <item1>-instid = 'FA163EE56C3A1ED5AE9AE011B059611E'.
+
+    APPEND INITIAL LINE TO mt_bp_test_data ASSIGNING FIELD-SYMBOL(<seconditem>).
+    <seconditem>-instid = 'FA163EE56C3A1EE5AD89008F1DBB0B45'.
+
+    rt_data = MT_BP_TEST_DATA.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
 * | Instance Private Method ZCL_CRM_ATTACHMENT_TOOL->GET_URL
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] IS_PROPERTIES                  TYPE        CRM_KW_PROPS
@@ -797,6 +828,37 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->PARALLEL_READ
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_GROUP_NUMBER                TYPE        INT4
+* | [--->] IT_ORDERS                      TYPE        LTTY_OBJECT_KEY
+* | [<-()] RT_ATTACHMENTS                 TYPE        CRMT_ODATA_TASK_ATTACHMENTT
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD parallel_read.
+    DATA:lv_taskid     TYPE c LENGTH 8,
+         lv_index      TYPE c LENGTH 4,
+         lt_attachment TYPE crmt_odata_task_attachmentt.
+
+    DO iv_group_number TIMES.
+      lv_index = sy-index.
+      lv_taskid = 'Task' && lv_index.
+
+      CLEAR: lt_attachment.
+      CALL FUNCTION 'ZJERRYGET_ATTACHMENTS'
+        STARTING NEW TASK lv_taskid
+        CALLING read_finished ON END OF TASK
+        EXPORTING
+          it_objects     = it_orders.
+    ENDDO.
+
+    WAIT UNTIL mv_finished = iv_group_number.
+
+    rt_attachments = mt_attachment_result.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
 * | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->PASS_BY_REF
 * +-------------------------------------------------------------------------------------------------+
 * | [<---] ES_RESULT                      TYPE        TADIR
@@ -837,6 +899,46 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
     rs_result-masterlang = 'EN'.
     rs_result-srcsystem = 'AG3'.
     rs_result-pgmid = 'R3TR'.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->READ_FINISHED
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] P_TASK                         TYPE        CLIKE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD read_finished.
+    DATA: lt_attachment TYPE crmt_odata_task_attachmentt.
+
+    ADD 1 TO mv_finished.
+    RECEIVE RESULTS FROM FUNCTION 'ZJERRYGET_ATTACHMENTS'
+    CHANGING
+      ct_attachments              = lt_attachment
+    EXCEPTIONS
+      system_failure        = 1
+      communication_failure = 2.
+
+    APPEND LINES OF lt_attachment TO mt_attachment_result.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->SEQUENTIAL_READ
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_LOOP_TIME                   TYPE        INT4
+* | [--->] IT_ORDERS                      TYPE        LTTY_OBJECT_KEY
+* | [<-()] RT_ATTACHMENTS                 TYPE        CRMT_ODATA_TASK_ATTACHMENTT
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method SEQUENTIAL_READ.
+    DATA: lt_attachment LIKE rt_attachments.
+
+    DO iv_loop_time TIMES.
+       CLEAR: lt_attachment.
+
+       lt_attachment = get_attachments_origin( it_orders ).
+       APPEND LINES OF lt_attachment TO rt_attachments.
+    ENDDO.
   endmethod.
 
 
