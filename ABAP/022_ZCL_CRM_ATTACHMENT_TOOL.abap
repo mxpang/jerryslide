@@ -13,6 +13,20 @@ public section.
   types:
     ltty_object_key TYPE TABLE OF lty_object_key .
 
+  methods PREFILL_ATTACHMENT_TAB
+    importing
+      !IV_NUM type INT4
+    changing
+      !CT_BP1 type ZCRM_BP_ATTACHMENT_T
+      !CT_BP2 type ZCRM_BP_ATTACHMENT_T
+      !CT_TASK1 type ZCRM_TASK_ATTACHMENT_T
+      !CT_TASK2 type ZCRM_TASK_ATTACHMENT_T .
+  methods COMPARE_BP
+    importing
+      !IT_BP1 type ZCRM_BP_ATTACHMENT_T
+      !IT_BP2 type ZCRM_BP_ATTACHMENT_T
+    returning
+      value(RV_EQUAL) type ABAP_BOOL .
   methods COMPARE_READ_RESULT
     importing
       !IT_ORIGIN type CRMT_ODATA_TASK_ATTACHMENTT
@@ -88,6 +102,18 @@ public section.
   methods GET_TESTDATA
     returning
       value(RT_DATA) type CRMT_OBJECT_KEY_T .
+  methods DYNAMIC_FILL_APPROACH1
+    changing
+      !CT_TABLE type ANY TABLE .
+  methods DYNAMIC_FILL_APPROACH2
+    changing
+      !CT_TABLE type ANY TABLE .
+  methods COMPARE_TASK
+    importing
+      !IT_TASK1 type ZCRM_TASK_ATTACHMENT_T
+      !IT_TASK2 type ZCRM_TASK_ATTACHMENT_T
+    returning
+      value(RV_EQUAL) type ABAP_BOOL .
 protected section.
 private section.
 
@@ -110,6 +136,7 @@ private section.
     tt_order_atta_link TYPE STANDARD TABLE OF ty_order_atta_link .
 
   data MT_ATTACHMENT_RESULT type CRMT_ODATA_TASK_ATTACHMENTT .
+  data MT_GUID_FOR_TEST type CRMT_OBJECT_GUID_TAB .
   data MT_BP_TEST_DATA type LTTY_OBJECT_KEY .
   data MV_FINISHED type INT4 .
   data MT_USER_NAME type TT_USER_NAME .
@@ -118,6 +145,14 @@ private section.
   data MV_END type I .
   data MV_REGULAR_TEST_NUM type INT4 value 10000 ##NO_TEXT.
 
+  methods GENERATE_TEST_GUID
+    importing
+      !IV_NUM type INT4 .
+  methods GET_GUID_BY_INDEX
+    importing
+      !IV_INDEX type SYINDEX
+    returning
+      value(RV_GUID) type CRMT_OBJECT_GUID .
   methods GET_CREATED_BY
     importing
       !IV_USER_NAME type BAPIBNAME-BAPIBNAME
@@ -150,6 +185,42 @@ ENDCLASS.
 
 
 CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->COMPARE_BP
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_BP1                         TYPE        ZCRM_BP_ATTACHMENT_T
+* | [--->] IT_BP2                         TYPE        ZCRM_BP_ATTACHMENT_T
+* | [<-()] RV_EQUAL                       TYPE        ABAP_BOOL
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method COMPARE_BP.
+    LOOP AT it_bp1 ASSIGNING FIELD-SYMBOL(<bp1>).
+       READ TABLE it_bp2 ASSIGNING FIELD-SYMBOL(<bp2>) WITH KEY header_guid = <bp1>-header_guid.
+       IF sy-subrc <> 0.
+          RETURN.
+       ENDIF.
+
+       LOOP AT <bp1>-attachment ASSIGNING FIELD-SYMBOL(<atta1>).
+          READ TABLE <bp2>-attachment ASSIGNING FIELD-SYMBOL(<atta2>) WITH KEY
+           documentid = <atta1>-documentid.
+
+          IF sy-subrc <> 0.
+             RETURN.
+          ENDIF.
+
+          IF <atta1>-created_by <> <atta2>-created_by.
+            RETURN.
+          ENDIF.
+
+          IF <atta1>-name <> <atta2>-name.
+             RETURN.
+          ENDIF.
+       ENDLOOP.
+    ENDLOOP.
+
+    rv_equal = abap_true.
+  endmethod.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
@@ -203,6 +274,42 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->COMPARE_TASK
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IT_TASK1                       TYPE        ZCRM_TASK_ATTACHMENT_T
+* | [--->] IT_TASK2                       TYPE        ZCRM_TASK_ATTACHMENT_T
+* | [<-()] RV_EQUAL                       TYPE        ABAP_BOOL
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method COMPARE_task.
+    LOOP AT it_task1 ASSIGNING FIELD-SYMBOL(<task1>).
+       READ TABLE it_task2 ASSIGNING FIELD-SYMBOL(<task2>) WITH KEY header_guid = <task1>-header_guid.
+       IF sy-subrc <> 0.
+          RETURN.
+       ENDIF.
+
+       LOOP AT <task1>-attachment ASSIGNING FIELD-SYMBOL(<atta1>).
+          READ TABLE <task2>-attachment ASSIGNING FIELD-SYMBOL(<atta2>) WITH KEY
+           documentid = <atta1>-documentid.
+
+          IF sy-subrc <> 0.
+             RETURN.
+          ENDIF.
+
+          IF <atta1>-created_by <> <atta2>-created_by.
+            RETURN.
+          ENDIF.
+
+          IF <atta1>-name <> <atta2>-name.
+             RETURN.
+          ENDIF.
+       ENDLOOP.
+    ENDLOOP.
+
+    rv_equal = abap_true.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
 * | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->COMPARE_VALUE_REF
 * +-------------------------------------------------------------------------------------------------+
 * +--------------------------------------------------------------------------------------</SIGNATURE>
@@ -229,7 +336,6 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
 * +-------------------------------------------------------------------------------------------------+
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   method CONSTRUCTOR.
-
 
   endmethod.
 
@@ -305,6 +411,122 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
         phio                = ls_phio
         error               = ls_error.
   endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->DYNAMIC_FILL_APPROACH1
+* +-------------------------------------------------------------------------------------------------+
+* | [<-->] CT_TABLE                       TYPE        ANY TABLE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD dynamic_fill_approach1.
+    DATA: lr_ref     TYPE REF TO data,
+          ls_task    TYPE crmt_odata_attachment,
+          ls_bp      TYPE crmt_bp_odata_attachment,
+          lt_task    TYPE crmt_odata_attachment_t,
+          lv_is_task TYPE abap_bool VALUE abap_true,
+          lt_bp      TYPE crmt_bp_odata_attachment_t.
+
+    FIELD-SYMBOLS: <detect> TYPE zcrm_task_attachment_t,
+                   <task_t> TYPE crmt_odata_attachment_t,
+                   <bp_t>   TYPE crmt_bp_odata_attachment_t.
+
+    GET REFERENCE OF ct_table INTO lr_ref.
+    TRY.
+        ASSIGN lr_ref->* TO <detect> CASTING.
+      CATCH cx_root.
+        lv_is_task = abap_false.
+    ENDTRY.
+
+    LOOP AT ct_table ASSIGNING FIELD-SYMBOL(<task_item>).
+      IF lv_is_task = abap_true.
+        ASSIGN COMPONENT 'ATTACHMENT' OF STRUCTURE <task_item> TO <task_t>.
+      ls_task-name = sy-index.
+      ls_task-created_by = sy-uname.
+      ls_task-mime_type = 'text/html'.
+      ls_task-documentid = ls_task-header_guid = get_guid_by_index( sy-tabix ).
+      APPEND ls_task TO <task_t>.
+      ELSE.
+        ASSIGN COMPONENT 'ATTACHMENT' OF STRUCTURE <task_item> TO <bp_t>.
+        ls_bp-name = sy-index.
+        ls_bp-created_by = sy-uname.
+        ls_bp-mime_type = 'text/html'.
+        ls_bp-documentid = get_guid_by_index( sy-tabix ).
+        APPEND ls_bp TO <bp_t>.
+      ENDIF.
+    ENDLOOP.
+*    DO iv_num TIMES.
+*
+*      IF <task_t> IS ASSIGNED.
+*        CLEAR: ls_task.
+*        ls_task-name = sy-index.
+*        ls_task-created_by = sy-uname.
+*        ls_task-mime_type = 'text/html'.
+*        ls_task-documentid = ls_task-header_guid = get_guid_by_index( sy-index ).
+** Jerry 2016-01-29 15:10PM this is used to simulate that every task has an internal table
+** to store multiple attachments
+*        APPEND ls_task TO lt_task.
+*        APPEND LINES OF lt_task TO <task_t>.
+*      ELSE.
+*        CLEAR: lt_bp.
+*        ls_bp-name = sy-index.
+*        ls_bp-created_by = sy-uname.
+*        ls_bp-mime_type = 'text/html'.
+*        ls_bp-documentid = get_guid_by_index( sy-index ).
+*        APPEND ls_bp TO lt_bp.
+*        APPEND LINES OF lt_bp TO <bp_t>.
+*      ENDIF.
+*    ENDDO.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->DYNAMIC_FILL_APPROACH2
+* +-------------------------------------------------------------------------------------------------+
+* | [<-->] CT_TABLE                       TYPE        ANY TABLE
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD dynamic_fill_approach2.
+    DATA:lr_attachment TYPE REF TO data,
+         ls_task       TYPE crmt_odata_attachment,
+         lt_task       TYPE crmt_odata_attachment_t.
+
+    FIELD-SYMBOLS: <task_t>   TYPE crmt_odata_attachment_t,
+                   <result>   TYPE ANY TABLE,
+                   <att_data> TYPE ANY TABLE.
+
+    CREATE DATA lr_attachment LIKE lt_task.
+    ASSIGN lr_attachment->* TO <att_data>.
+
+    LOOP AT ct_table ASSIGNING FIELD-SYMBOL(<task_item>).
+      ASSIGN COMPONENT 'ATTACHMENT' OF STRUCTURE <task_item> TO <result>.
+      CLEAR: lt_task.
+      ls_task-name = sy-index.
+      ls_task-created_by = sy-uname.
+      ls_task-mime_type = 'text/html'.
+      ls_task-documentid = ls_task-header_guid = get_guid_by_index( sy-tabix ).
+      APPEND ls_task TO lt_task.
+* Jerry 2016-01-29 15:10PM this is used to simulate that every task has an internal table
+* to store multiple attachments
+      <att_data> = lt_task.
+      MOVE-CORRESPONDING <att_data> TO <result>.
+    ENDLOOP.
+
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_CRM_ATTACHMENT_TOOL->GENERATE_TEST_GUID
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_NUM                         TYPE        INT4
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD generate_test_guid.
+    DATA: lv_guid TYPE crmt_object_guid.
+    DO iv_num TIMES.
+      CALL FUNCTION 'SYSTEM_UUID_CREATE'
+        IMPORTING
+          uuid = lv_guid.
+      INSERT lv_guid INTO TABLE mt_guid_for_test.
+    ENDDO.
+  ENDMETHOD.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
@@ -632,6 +854,17 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_CRM_ATTACHMENT_TOOL->GET_GUID_BY_INDEX
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_INDEX                       TYPE        SYINDEX
+* | [<-()] RV_GUID                        TYPE        CRMT_OBJECT_GUID
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method GET_GUID_BY_INDEX.
+     READ TABLE mt_guid_For_test INTO rv_guid INDEX iv_index.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
 * | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->GET_IOS_BY_KEY
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] IV_KEY                         TYPE        SIBFBORIID
@@ -899,6 +1132,35 @@ CLASS ZCL_CRM_ATTACHMENT_TOOL IMPLEMENTATION.
     rs_result-masterlang = 'EN'.
     rs_result-srcsystem = 'AG3'.
     rs_result-pgmid = 'R3TR'.
+  endmethod.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Public Method ZCL_CRM_ATTACHMENT_TOOL->PREFILL_ATTACHMENT_TAB
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IV_NUM                         TYPE        INT4
+* | [<-->] CT_BP1                         TYPE        ZCRM_BP_ATTACHMENT_T
+* | [<-->] CT_BP2                         TYPE        ZCRM_BP_ATTACHMENT_T
+* | [<-->] CT_TASK1                       TYPE        ZCRM_TASK_ATTACHMENT_T
+* | [<-->] CT_TASK2                       TYPE        ZCRM_TASK_ATTACHMENT_T
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  method PREFILL_ATTACHMENT_TAB.
+    generate_test_guid( iv_num ).
+
+    DO iv_num TIMES.
+       DATA(lv_guid) = get_guid_by_index( sy-index ).
+       APPEND INITIAL LINE TO ct_bp1 ASSIGNING FIELD-SYMBOL(<bp1>).
+       <bp1>-header_guid = lv_guid.
+
+       APPEND INITIAL LINE TO ct_bp2 ASSIGNING FIELD-SYMBOL(<bp2>).
+       <bp2>-header_guid = lv_guid.
+
+       APPEND INITIAL LINE TO ct_task1 ASSIGNING FIELD-SYMBOL(<task1>).
+       <task1>-header_guid = lv_guid.
+
+       APPEND INITIAL LINE TO ct_task2 ASSIGNING FIELD-SYMBOL(<task2>).
+       <task2>-header_guid = lv_guid.
+    ENDDO.
   endmethod.
 
 
