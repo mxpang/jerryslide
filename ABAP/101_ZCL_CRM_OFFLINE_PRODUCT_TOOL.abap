@@ -8,23 +8,29 @@ CLASS zcl_crm_offline_product_tool DEFINITION
     TYPES:
       BEGIN OF ty_origin,
         orderadm_i TYPE crmt_orderadm_i_wrkt,
-        product_i TYPE CRMT_PRODUCT_I_WRKT,
-        SCHEDLIN_I TYPE CRMT_SCHEDLIN_I_WRKT,
+        product_i  TYPE crmt_product_i_wrkt,
+        schedlin_i TYPE crmt_schedlin_i_wrkt,
+        price_i    TYPE crmt_pricing_i_wrkt,
+        price      TYPE crmt_pricing_wrkt,
+
       END OF ty_origin .
 
     TYPES: BEGIN OF ty_opt_line,
-             guid TYPE crmd_orderadm_i-guid,
-             header TYPE crmd_orderadm_i-header,
-             product TYPE crmd_orderadm_i-product,
-             ordered_prod TYPE crmd_orderadm_i-ordered_prod,
-             description TYPE crmd_orderadm_i-description,
-             PROCESS_QTY_UNIT TYPE CRMD_PRODUCT_I-process_qty_unit,
-             PROD_HIERARCHY TYPE crmd_product_i-prod_hierarchy,
-             quantity TYPE CRMD_SCHEDLIN-quantity,
+             guid             TYPE crmd_orderadm_i-guid,
+             header           TYPE crmd_orderadm_i-header,
+             product          TYPE crmd_orderadm_i-product,
+             ordered_prod     TYPE crmd_orderadm_i-ordered_prod,
+             description      TYPE crmd_orderadm_i-description,
+             process_qty_unit TYPE crmd_product_i-process_qty_unit,
+             prod_hierarchy   TYPE crmd_product_i-prod_hierarchy,
+             quantity         TYPE crmd_schedlin-quantity,
+             net_value        TYPE crmd_pricing_i-net_value,
+             net_value_man    TYPE crmd_pricing_i-net_value_man,
+             currency         TYPE crmd_pricing-currency,
            END OF ty_opt_line.
 
     TYPES: BEGIN OF ty_opt,
-                data TYPE STANDARD TABLE OF ty_opt_line WITH KEY guid,
+             data TYPE STANDARD TABLE OF ty_opt_line WITH KEY guid,
            END OF ty_opt.
 
     METHODS compare
@@ -56,48 +62,60 @@ CLASS zcl_crm_offline_product_tool DEFINITION
       RETURNING
         VALUE(es_data)      TYPE ty_opt .
   PROTECTED SECTION.
-private section.
+  PRIVATE SECTION.
 
-  data MV_START type INT4 .
-  data MV_END type I .
-  constants GC_ORDERADM_I type CRMT_OBJECT_NAME value 'ORDERADM_I' ##NO_TEXT.
-  constants GC_PRICING type CRMT_OBJECT_NAME value 'PRICING' ##NO_TEXT.
-  constants GC_PRICING_I type CRMT_OBJECT_NAME value 'PRICING_I' ##NO_TEXT.
-  constants GC_PRODUCT_I type CRMT_OBJECT_NAME value 'PRODUCT_I' ##NO_TEXT.
-  constants GC_SCHEDLIN_I type CRMT_OBJECT_NAME value 'SCHEDLIN_I' ##NO_TEXT.
-  data MT_TEST_GUID_TAB type CRMT_OBJECT_GUID_TAB .
+    DATA mv_start TYPE int4 .
+    DATA mv_end TYPE i .
+    CONSTANTS gc_orderadm_i TYPE crmt_object_name VALUE 'ORDERADM_I' ##NO_TEXT.
+    CONSTANTS gc_pricing TYPE crmt_object_name VALUE 'PRICING' ##NO_TEXT.
+    CONSTANTS gc_pricing_i TYPE crmt_object_name VALUE 'PRICING_I' ##NO_TEXT.
+    CONSTANTS gc_product_i TYPE crmt_object_name VALUE 'PRODUCT_I' ##NO_TEXT.
+    CONSTANTS gc_schedlin_i TYPE crmt_object_name VALUE 'SCHEDLIN_I' ##NO_TEXT.
+    DATA mt_test_guid_tab TYPE crmt_object_guid_tab .
 
-  methods GET_TEST_DATA
-    returning
-      value(RT_DATA) type CRMT_OBJECT_GUID_TAB .
-  methods GET_EXPAND_NODE
-    returning
-      value(RO_NODE) type ref to /IWBEP/CL_MGW_EXPAND_NODE .
-  methods COMPARE_ADMIN_I
-    importing
-      !IS_ORIGIN type TY_ORIGIN
-      !IS_OPT type TY_OPT
-    returning
-      value(RV_EQUAL) type ABAP_BOOL .
-  methods COMPARE_FIELD
-    importing
-      !IV_STRU1 type ANY
-      !IV_STRU2 type ANY
-      !IV_FIELD type STRING
-    returning
-      value(RV_EQUAL) type ABAP_BOOL .
-  methods COMPARE_PRODUCT_I
-    importing
-      !IS_ORIGIN type TY_ORIGIN
-      !IS_OPT type TY_OPT
-    returning
-      value(RV_EQUAL) type ABAP_BOOL .
-  methods COMPARE_SCHEDULE_I
-    importing
-      !IS_ORIGIN type TY_ORIGIN
-      !IS_OPT type TY_OPT
-    returning
-      value(RV_EQUAL) type ABAP_BOOL .
+    METHODS get_test_data
+      RETURNING
+        VALUE(rt_data) TYPE crmt_object_guid_tab .
+    METHODS get_expand_node
+      RETURNING
+        VALUE(ro_node) TYPE REF TO /iwbep/cl_mgw_expand_node .
+    METHODS compare_admin_i
+      IMPORTING
+        !is_origin      TYPE ty_origin
+        !is_opt         TYPE ty_opt
+      RETURNING
+        VALUE(rv_equal) TYPE abap_bool .
+    METHODS compare_field
+      IMPORTING
+        !iv_stru1       TYPE any
+        !iv_stru2       TYPE any
+        !iv_field       TYPE string
+      RETURNING
+        VALUE(rv_equal) TYPE abap_bool .
+    METHODS compare_product_i
+      IMPORTING
+        !is_origin      TYPE ty_origin
+        !is_opt         TYPE ty_opt
+      RETURNING
+        VALUE(rv_equal) TYPE abap_bool .
+    METHODS compare_schedule_i
+      IMPORTING
+        !is_origin      TYPE ty_origin
+        !is_opt         TYPE ty_opt
+      RETURNING
+        VALUE(rv_equal) TYPE abap_bool .
+    METHODS compare_price_i
+      IMPORTING
+        !is_origin      TYPE ty_origin
+        !is_opt         TYPE ty_opt
+      RETURNING
+        VALUE(rv_equal) TYPE abap_bool .
+    METHODS compare_price
+      IMPORTING
+        !is_origin      TYPE ty_origin
+        !is_opt         TYPE ty_opt
+      RETURNING
+        VALUE(rv_equal) TYPE abap_bool .
 ENDCLASS.
 
 
@@ -113,9 +131,14 @@ CLASS ZCL_CRM_OFFLINE_PRODUCT_TOOL IMPLEMENTATION.
 * | [<-()] RV_EQUAL                       TYPE        ABAP_BOOL
 * +--------------------------------------------------------------------------------------</SIGNATURE>
   METHOD compare.
-    CHECK compare_admin_i(   is_origin = is_origin is_opt = is_opt ) = abap_true.
-    CHECK compare_product_i( is_origin = is_origin is_opt = is_opt ) = abap_true.
+
+    CHECK lines( is_origin-orderadm_i ) = lines( is_opt-data ).
+
+    CHECK compare_admin_i(    is_origin = is_origin is_opt = is_opt ) = abap_true.
+    CHECK compare_product_i(  is_origin = is_origin is_opt = is_opt ) = abap_true.
     CHECK compare_schedule_i( is_origin = is_origin is_opt = is_opt ) = abap_true.
+    CHECK compare_price_i(    is_origin = is_origin is_opt = is_opt ) = abap_true.
+    CHECK compare_price(      is_origin = is_origin is_opt = is_opt ) = abap_true.
 
     rv_equal = abap_true.
   ENDMETHOD.
@@ -180,13 +203,67 @@ CLASS ZCL_CRM_OFFLINE_PRODUCT_TOOL IMPLEMENTATION.
 
 
 * <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_CRM_OFFLINE_PRODUCT_TOOL->COMPARE_PRICE
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IS_ORIGIN                      TYPE        TY_ORIGIN
+* | [--->] IS_OPT                         TYPE        TY_OPT
+* | [<-()] RV_EQUAL                       TYPE        ABAP_BOOL
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD compare_price.
+
+    LOOP AT is_origin-price ASSIGNING FIELD-SYMBOL(<origin>).
+      READ TABLE is_opt-data ASSIGNING FIELD-SYMBOL(<opt>)
+        WITH KEY guid = <origin>-guid.
+      IF sy-subrc <> 0.
+        RETURN.
+      ENDIF.
+
+      IF compare_field( iv_stru1 = <origin> iv_stru2 = <opt> iv_field = 'CURRENCY' ) = abap_false.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+
+    rv_equal = abap_true.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
+* | Instance Private Method ZCL_CRM_OFFLINE_PRODUCT_TOOL->COMPARE_PRICE_I
+* +-------------------------------------------------------------------------------------------------+
+* | [--->] IS_ORIGIN                      TYPE        TY_ORIGIN
+* | [--->] IS_OPT                         TYPE        TY_OPT
+* | [<-()] RV_EQUAL                       TYPE        ABAP_BOOL
+* +--------------------------------------------------------------------------------------</SIGNATURE>
+  METHOD compare_price_i.
+
+    LOOP AT is_origin-price_i ASSIGNING FIELD-SYMBOL(<origin>).
+      READ TABLE is_opt-data ASSIGNING FIELD-SYMBOL(<opt>)
+        WITH KEY guid = <origin>-guid.
+      IF sy-subrc <> 0.
+        RETURN.
+      ENDIF.
+
+      IF compare_field( iv_stru1 = <origin> iv_stru2 = <opt> iv_field = 'NET_VALUE' ) = abap_false.
+        RETURN.
+      ENDIF.
+
+      IF compare_field( iv_stru1 = <origin> iv_stru2 = <opt> iv_field = 'NET_VALUE_MAN' ) = abap_false.
+        RETURN.
+      ENDIF.
+    ENDLOOP.
+
+    rv_equal = abap_true.
+  ENDMETHOD.
+
+
+* <SIGNATURE>---------------------------------------------------------------------------------------+
 * | Instance Private Method ZCL_CRM_OFFLINE_PRODUCT_TOOL->COMPARE_PRODUCT_I
 * +-------------------------------------------------------------------------------------------------+
 * | [--->] IS_ORIGIN                      TYPE        TY_ORIGIN
 * | [--->] IS_OPT                         TYPE        TY_OPT
 * | [<-()] RV_EQUAL                       TYPE        ABAP_BOOL
 * +--------------------------------------------------------------------------------------</SIGNATURE>
-  METHOD COMPARE_PRODUCT_I.
+  METHOD compare_product_i.
 
     LOOP AT is_origin-product_i ASSIGNING FIELD-SYMBOL(<origin>).
       READ TABLE is_opt-data ASSIGNING FIELD-SYMBOL(<opt>)
@@ -215,16 +292,19 @@ CLASS ZCL_CRM_OFFLINE_PRODUCT_TOOL IMPLEMENTATION.
 * | [--->] IS_OPT                         TYPE        TY_OPT
 * | [<-()] RV_EQUAL                       TYPE        ABAP_BOOL
 * +--------------------------------------------------------------------------------------</SIGNATURE>
-  METHOD COMPARE_SCHEDULE_I.
+  METHOD compare_schedule_i.
 
-    LOOP AT is_origin-SCHEDLIN_I ASSIGNING FIELD-SYMBOL(<origin>).
+    LOOP AT is_origin-schedlin_i ASSIGNING FIELD-SYMBOL(<origin>).
       READ TABLE is_opt-data ASSIGNING FIELD-SYMBOL(<opt>)
         WITH KEY guid = <origin>-guid.
       IF sy-subrc <> 0.
         RETURN.
       ENDIF.
 
-      IF compare_field( iv_stru1 = <origin> iv_stru2 = <opt> iv_field = 'QUANTITY' ) = abap_false.
+*      IF compare_field( iv_stru1 = <origin> iv_stru2 = <opt> iv_field = 'ORDER_QTY' ) = abap_false.
+*        RETURN.
+*      ENDIF.
+      IF <origin>-order_qty <> <opt>-quantity.
         RETURN.
       ENDIF.
 
@@ -327,13 +407,15 @@ CLASS ZCL_CRM_OFFLINE_PRODUCT_TOOL IMPLEMENTATION.
       lt_option = get_test_data( ).
     ENDIF.
 
-    SELECT a~guid a~header  a~product a~ordered_prod a~description b~process_qty_unit b~prod_hierarchy
-      c~quantity FROM crmd_orderadm_i AS a
-      LEFT JOIN crmd_product_i AS b
-        ON a~guid = b~guid  LEFT JOIN crmd_schedlin AS c
-        ON a~guid  = c~guid INTO CORRESPONDING FIELDS OF
-      TABLE es_data-data FOR ALL ENTRIES IN lt_option
-       WHERE header = lt_option-table_line.
+SELECT a~guid a~header  a~product a~ordered_prod a~description b~process_qty_unit b~prod_hierarchy
+      c~quantity d~net_value d~net_value_man e~currency FROM crmd_orderadm_i AS a
+      LEFT JOIN crmd_product_i AS b ON a~guid = b~guid
+      LEFT JOIN crmd_schedlin AS c ON a~guid  = c~item_guid
+      LEFT JOIN crmd_pricing_i AS d ON a~guid = d~guid
+      LEFT JOIN crmd_pricing AS e ON a~guid = e~guid
+      INTO CORRESPONDING FIELDS OF TABLE es_data-data
+      FOR ALL ENTRIES IN lt_option WHERE header = lt_option-table_line.
+
   ENDMETHOD.
 
 
@@ -347,8 +429,10 @@ CLASS ZCL_CRM_OFFLINE_PRODUCT_TOOL IMPLEMENTATION.
     DATA: lt_input             TYPE crmt_object_guid_tab,
           lt_requested_objects TYPE crmt_object_name_tab,
           lt_orderadm_i        TYPE crmt_orderadm_i_wrkt,
-          lt_product_i         TYPE CRMT_PRODUCT_I_WRKT,
-          lt_schedlin_i TYPE CRMT_SCHEDLIN_I_WRKT,
+          lt_product_i         TYPE crmt_product_i_wrkt,
+          lt_price_i           TYPE crmt_pricing_i_wrkt,
+          lt_price             TYPE crmt_pricing_wrkt,
+          lt_schedlin_i        TYPE crmt_schedlin_i_wrkt,
           lt_option            LIKE lt_input.
 
     lt_option = it_header_guid_tab.
@@ -357,11 +441,16 @@ CLASS ZCL_CRM_OFFLINE_PRODUCT_TOOL IMPLEMENTATION.
     ENDIF.
 
     LOOP AT lt_option ASSIGNING FIELD-SYMBOL(<guid>).
-      CLEAR: lt_input, lt_requested_objects,lt_orderadm_i, lt_product_i,lt_schedlin_i.
+      CLEAR: lt_input, lt_requested_objects,lt_orderadm_i, lt_product_i,lt_schedlin_i,
+             lt_price_i, lt_price.
+
       APPEND <guid> TO lt_input.
       INSERT gc_orderadm_i INTO TABLE lt_requested_objects.
       INSERT gc_product_i INTO TABLE lt_requested_objects.
       INSERT gc_schedlin_i INTO TABLE lt_requested_objects.
+      INSERT gc_pricing_i INTO TABLE lt_requested_objects.
+      INSERT gc_pricing INTO TABLE lt_requested_objects.
+
       CALL FUNCTION 'CRM_ORDER_READ'
         EXPORTING
           it_header_guid       = lt_input
@@ -369,9 +458,9 @@ CLASS ZCL_CRM_OFFLINE_PRODUCT_TOOL IMPLEMENTATION.
         IMPORTING
           et_orderadm_i        = lt_orderadm_i
           et_product_i         = lt_product_i
-*         et_pricing           = lt_pricing
-*         et_pricing_i         = lt_pricing_i
-         et_schedlin_i        = lt_schedlin_i
+          et_pricing           = lt_price
+          et_pricing_i         = lt_price_i
+          et_schedlin_i        = lt_schedlin_i
         EXCEPTIONS
           document_not_found   = 1
           error_occurred       = 2
@@ -381,11 +470,19 @@ CLASS ZCL_CRM_OFFLINE_PRODUCT_TOOL IMPLEMENTATION.
           no_change_allowed    = 6
           OTHERS               = 7.
       IF lt_orderadm_i IS NOT INITIAL.
-        insert LINES OF lt_orderadm_i inTO table es_data-orderadm_i.
+        INSERT LINES OF lt_orderadm_i INTO TABLE es_data-orderadm_i.
       ENDIF.
 
       IF lt_product_i IS NOT INITIAL.
-        insert LINES OF lt_product_i inTO table es_data-product_i.
+        INSERT LINES OF lt_product_i INTO TABLE es_data-product_i.
+      ENDIF.
+
+      IF lt_schedlin_i IS NOT INITIAL.
+        INSERT LINES OF lt_schedlin_i INTO TABLE es_data-schedlin_i.
+      ENDIF.
+
+      IF lt_price_i IS NOT INITIAL.
+        INSERT LINES OF lt_price_i INTO TABLE es_data-price_i.
       ENDIF.
 
     ENDLOOP.
