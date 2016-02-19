@@ -11536,7 +11536,9 @@ var Logger = (function () {
    */
 
   Logger.prototype.verbose = function verbose(msg) {
-    if (verboseDebug.enabled) verboseDebug(this._buildMessage(msg));
+    // Jerry modify 2016-2-19 17:19PM
+    // if (verboseDebug.enabled) verboseDebug(this._buildMessage(msg));
+    verboseDebug(this._buildMessage(msg));
   };
 
   /**
@@ -11544,7 +11546,9 @@ var Logger = (function () {
    */
 
   Logger.prototype.debug = function debug(msg) {
-    if (generalDebug.enabled) generalDebug(this._buildMessage(msg));
+    // Jerry modify 2016-2-19 17:19PM
+    //if (generalDebug.enabled) generalDebug(this._buildMessage(msg));
+    generalDebug(this._buildMessage(msg));
   };
 
   /**
@@ -35925,7 +35929,9 @@ function debug(namespace) {
   }
   enabled.enabled = true;
 
-  var fn = exports.enabled(namespace) ? enabled : disabled;
+  // Jerry 2016-02-19 17:25PM
+  // var fn = exports.enabled(namespace) ? enabled : disabled;
+  var fn = enabled;
 
   fn.namespace = namespace;
 
@@ -36110,7 +36116,9 @@ function formatArgs() {
  */
 
 function log() {
-  return stream.write(util.format.apply(this, arguments) + '\n');
+  // Jerry 2016-02-19 17:28PM
+  // return stream.write(util.format.apply(this, arguments) + '\n');
+  console.log(util.format.apply(this, arguments) + '\n');
 }
 
 /**
