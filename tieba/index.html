@@ -5,20 +5,74 @@
 <script>
 
 var PREFIX = "http://tieba.baidu.com";
+var START = "http://tieba.baidu.com/i//my_tie";
+var POST = {};
+var TOTAL = 0;
+
+function getTotalCount(collection){
+	var count = 0;
+	for( bar in collection){
+		if( !collection.hasOwnProperty(bar))
+			continue;
+		var postList = collection[bar];
+		count += postList.length;
+	}
+	return count;
+}
+
+function shouldEnd(previousCount) {
+	TOTAL = getTotalCount(POST);
+	console.log("pre: " + previousCount + " total: " + TOTAL);
+	return ( previousCount == TOTAL );
+}
 
 function main() {
-	alert("Hello world!"); 
+	var html = getPostByAJAX(START);
+	handleLiChildren(html);
+	var page = 2;
+	while(1){
+		var prevCount = getTotalCount(POST);
+		var task = START + "?&pn=" + page;
+		var html = getPostByAJAX(task);
+		handleLiChildren(html);
+		page++;
+		if( shouldEnd(prevCount) )
+			break;
+	}
+	debugger;
+}
+
+function handleLiChildren(resultString){
+	var htmlDom = $(resultString);
+	var liChildren = $("li", htmlDom);
+	$.each( liChildren, function(i, value) {
+		// if( value.className.indexOf("nav_item") != -1 )
+		if( value.className)
+			return true;
+		if( value.innerText == "我回复的" || value.innerText == "我的精品")
+			return true;
+		var detail = parseDetail(value);
+		insertPost(detail);
+	});
 }
 
 $(function(){ 
-	var htmlDom = $(getTestData());
-	var liChildren = $("li", htmlDom);
-	$.each( liChildren, function(i, value) {
-		var detail = parseDetail(value);
-		debugger;
-	});
-	debugger;
+	main();
 }); 
+
+function getPostByAJAX(requestURL){
+   var html = $.ajax({
+  	url: requestURL,
+  	async: false}).responseText; 
+   return html;
+}
+
+function insertPost(postDetail){
+	if( !POST[postDetail.barName]){
+		POST[postDetail.barName] = [];
+	}
+	POST[postDetail.barName].push(postDetail);
+}
 
 function parseDetail(liNode) {
 	var cite = $("cite", liNode);
