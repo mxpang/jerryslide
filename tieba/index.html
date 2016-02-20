@@ -1,0 +1,51 @@
+<html>
+<meta charset="UTF-8"/> 
+<script src="jquery1.7.1.js">
+</script>
+<script>
+
+var PREFIX = "http://tieba.baidu.com";
+
+function main() {
+	alert("Hello world!"); 
+}
+
+$(function(){ 
+	var htmlDom = $(getTestData());
+	var liChildren = $("li", htmlDom);
+	$.each( liChildren, function(i, value) {
+		var detail = parseDetail(value);
+		debugger;
+	});
+	debugger;
+}); 
+
+function parseDetail(liNode) {
+	var cite = $("cite", liNode);
+	var date = cite[0].innerHTML; // value1
+	var tds = $("td", liNode);
+	var a1 = $("a", tds[0]);
+	var barName = a1[0].innerHTML; // value2
+	var a2 = $("a", tds[1]);
+	var postTitle = a2[0].innerHTML; // value3
+	var url = PREFIX + a2.attr("href");
+	return {
+		date: date,
+		barName: barName,
+		postTitle: postTitle,
+		url: url
+	}
+}
+function getTestData(){
+	return '<!DOCTYPE html><html><body><div class="wrap1"><div class="wrap2"><div ' + 
+	' id="main_wrapper" class="main_wrapper"><div id="main_back_img"><div ' + 
+	' id="main_back_bottom"><div id="container" class="ibody clearfix"><div><div ' + 
+	' id="content"><div class="simple_block_container"><ul><li><cite>2-16</cite>' + 
+    '<div class="wrap_container"><table><tr><td class="nowrap">在<a style="" ' +
+    ' href="/f?kw=%E5%A4%A7%E9%82%91" target="_blank">ANDROID吧</a> 发贴</td><td class="wrap">' + 
+    '<a href="/p/4356641476?pid=84106363194&amp;cid=0#841063631" class="thread_title"  target="_blank">硬盘</a></td>' +
+	'</tr></table></div><div class="clear"></div></li>' + 
+    '<li></li><li></li></ul></div></div></div></div></div></div></div></div></body></html>';
+}
+</script>
+</html>
