@@ -1,5 +1,15 @@
 <html>
 <meta charset="UTF-8"/> 
+<style>
+a {
+	color: green;
+	font-family: arial;
+	font-weight: bold
+}
+</style>
+<body>
+	<div id="container"></div>
+</body>
 <script src="jquery1.7.1.js">
 </script>
 <script>
@@ -8,6 +18,7 @@ var PREFIX = "http://tieba.baidu.com";
 var START = "http://tieba.baidu.com/i//my_tie";
 var POST = {};
 var TOTAL = 0;
+var SORTED = [];
 
 function getTotalCount(collection){
 	var count = 0;
@@ -36,10 +47,13 @@ function main() {
 		var html = getPostByAJAX(task);
 		handleLiChildren(html);
 		page++;
+		if( page >=2 )
+			break;
 		if( shouldEnd(prevCount) )
 			break;
 	}
-	debugger;
+	sort();
+	generate();
 }
 
 function handleLiChildren(resultString){
@@ -54,6 +68,64 @@ function handleLiChildren(resultString){
 		var detail = parseDetail(value);
 		insertPost(detail);
 	});
+}
+
+/*
+<ul>
+	<li>
+		<cite>2016</cite>
+		 <a href="/f?kw=%E5%A4%A7%E9%82%91" >尿素氮</a>
+	</li>
+	<li>
+		<cite>2015</cite>
+		 <a href="/f?kw=%E5%A4%A7%E9%82%91" >尿素氮2</a>
+	</li>
+</ul>
+*/
+
+function getpostSource(post) {
+	var source = "<li><cite>";
+	source += post.date + "/<cite>";
+	source += '<a href="' + post.url + '">' + post.postTitle + "</a></li>";
+	return source; 
+}
+
+function getBarPostsSource(barName, posts) {
+	var source = '<h1>' + barName + ': ' + posts.length + '个</h1>';
+	source += "<ul>";
+	for( var i = 0; i < posts.length; i++){
+		var post = posts[i];
+		source += getpostSource(post);
+	}
+	source += "</ul>";
+	return source;
+}
+
+function sortNumber(a,b){
+	return b.size - a.size; 
+}
+
+function sort() {
+	for( barName in POST) {
+		if( !POST.hasOwnProperty(barName))
+			continue;
+		var post = {
+			name: barName,
+			size: POST[barName].length
+		};
+		SORTED.push(post);
+	}
+	SORTED.sort(sortNumber);
+}
+
+function generate(){
+	var div = document.getElementById("container");
+	var source = "总共帖子: " + TOTAL + "个";
+	for( var i = 0; i < SORTED.length; i++){
+		var posts = POST[SORTED[i].name];
+		source += getBarPostsSource(SORTED[i].name, posts);
+	}
+	div.innerHTML = source;
 }
 
 $(function(){ 
