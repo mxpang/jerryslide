@@ -17,6 +17,15 @@ function print(a,b,c){
 // Scala会替换到forEach里自动assign的value，但是index和wholeArray仍然不变。
 // var b = [1,2,3].forEach(print.bind("null", "Scala"));
 var b = [1,2,3].forEach(print.bind("null", "Scala", "React"));
+
+var a = function Jerry(){
+	function embedded(){
+
+	}
+	this.name = "Scala";
+}
+
+var b = new a();
 debugger;
 </script>
 
