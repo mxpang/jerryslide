@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html>
+<!-- 上面代码的arr变量是一个数组，结果 JSX 会把它的所有成员，添加到模板，运行结果如下。
+  !-->
+<meta charset="UTF-8"/> 
   <head>
     <script src="../build/react.js"></script>
     <script src="../build/react-dom.js"></script>
@@ -12,6 +15,7 @@
         <h1>Hello world!</h1>,
         <h2>React is awesome</h2>,
       ];
+      debugger;
       ReactDOM.render(
         <div>{arr}</div>,
         document.getElementById('example')
