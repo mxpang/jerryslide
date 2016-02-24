@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+<meta charset="UTF-8"/> 
   <head>
     <script src="../build/react.js"></script>
     <script src="../build/react-dom.js"></script>
@@ -7,7 +8,7 @@
   </head>
   <body>
     <script type="text/babel">
-
+      debugger;
       var data = 123;
 
       var MyTitle = React.createClass({
@@ -15,13 +16,24 @@
           title: React.PropTypes.string.isRequired,
         },
 
+        getDefaultProps :function(){
+          debugger;
+          return {
+            title :'Hello World'};
+          },
+
         render: function() {
           return <h1> {this.props.title} </h1>;
         }
       });
 
+      /*
       ReactDOM.render(
         <MyTitle title={data} />,
+        document.body
+      );*/
+      ReactDOM.render(
+        <MyTitle/>,
         document.body
       );
 
