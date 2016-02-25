@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+<meta charset="UTF-8"/> 
   <head>
     <script src="../build/react.js"></script>
     <script src="../build/react-dom.js"></script>
@@ -7,18 +8,30 @@
   </head>
   <body>
     <script type="text/babel">
+      var NUM = 100;
       var Input = React.createClass({
         getInitialState: function() {
-          return {value: 'Hello!'};
+          return {
+            Jerryvalue: 'Hello!'
+          };
         },
+
         handleChange: function(event) {
-          this.setState({value: event.target.value});
+          this.setState({
+            Jerryvalue: event.target.value
+          });
         },
         render: function () {
-          var value = this.state.value;
+          var value = this.state.Jerryvalue;
+          var arr = [];
+          for(var i = 0; i < NUM; i++){
+            arr.push(<p>{value}</p>);
+          }
+
           return (
             <div>
-              <input type="text" value={value} onChange={this.handleChange} />
+            <input type="text" value={value} onChange={this.handleChange} />
+              {arr}
               <p>{value}</p>
             </div>
           );
