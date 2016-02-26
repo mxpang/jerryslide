@@ -47,8 +47,9 @@ function main() {
 		var html = getPostByAJAX(task);
 		handleLiChildren(html);
 		page++;
+		/*
 		if( page >=2 )
-			break;
+			break;*/
 		if( shouldEnd(prevCount) )
 			break;
 	}
