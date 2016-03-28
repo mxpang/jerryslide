@@ -35,7 +35,7 @@ console.log(typeof obj2, obj2); // object Object {name: "my name is hanzichi", s
 // JS object -> Js String
 var obj3 = {name: 'hanzichi', sex: 'male', age: '10'};
 var jsonStr3 = JSON.stringify(obj3);
-console.log(jsonStr3);  // {"name":"hanzichi","sex":"male","age":"10"}
+console.log(jsonStr3);  // { "name":"hanzichi","sex":"male","age":"10"}
 
 //也可以加个参数，规定需要转化为json字符串的属性（数组形式，跟数组同名的js对象属性才会被转换）：
 var obj4 = {name: 'hanzichi', sex: 'male', age: '10'};
