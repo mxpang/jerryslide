@@ -5,9 +5,12 @@ var a = {
 	score: 100
 };
 
-var c;
-for( var b in c){
-	console.log(" b: " + b + " value: " + a[b]);
-}
+function calleeDemo() { 
+	debugger;
+	console.log( "equal? " + this === arguments.callee); // this points to global
+    console.log(arguments.callee); 
+} 
+
+calleeDemo();
 </script>
 </html>
