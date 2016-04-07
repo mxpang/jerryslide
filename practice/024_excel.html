@@ -91,6 +91,7 @@ INPUTS.forEach(function(elm) {
     Object.defineProperty(DATA, elm.id.toLowerCase(), {get:getter});
 });
 (window.computeAll = function() {
+    // 2016-04-07 21:55PM stuck by drop down list
     INPUTS.forEach(function(elm) { try { elm.value = DATA[elm.id]; } catch(e) {} });
 })();
 }
