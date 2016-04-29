@@ -1425,6 +1425,7 @@ sap.ui.define([
 		if (bReload === undefined) {
 			bReload = this._isReloadNeeded(sResolvedPath, mParameters);
 		}
+		// Jerry 2016-04-29 9:17PM - if reload is false, data already available:
 
 		if (!bReload) {
 			sCanonicalPath = this.resolve(sPath, oContext, true);
@@ -1434,7 +1435,7 @@ sap.ui.define([
 			}
 			return oNewContext;
 		}
-
+		// else: Jerry - reload needed!
 		if (fnCallBack) {
 			var bIsRelative = !jQuery.sap.startsWith(sPath, "/");
 			if (sResolvedPath) {
