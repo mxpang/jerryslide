@@ -1374,7 +1374,9 @@ sap.ui.define([
 	/**
 	 * Creates a binding context for the given path
 	 * If the data of the context is not yet available, it can not be created, but first the
-	 * entity needs to be fetched from the server asynchronously. In case no callback function
+	 * entity needs to be fetched from the server asynchronously. 
+	 * Jerry 2016-04-29 16:09PM - this is very useful !!
+	 * In case no callback function
 	 * is provided, the request will not be triggered.
 	 *
 	 * @see sap.ui.model.Model.prototype.createBindingContext
@@ -1470,6 +1472,8 @@ sap.ui.define([
 					}
 					fnCallBack(null); // error - notify to recreate contexts
 				};
+				// Jerry 2016-04-29 16:12PM - this line will read odata, 
+				// and handleSuccess will bind data
 				this.read(sResolvedPath, {groupId: sGroupId, urlParameters: aParams, success: handleSuccess, error: handleError});
 			} else {
 				fnCallBack(null); // error - notify to recreate contexts
@@ -2163,6 +2167,7 @@ sap.ui.define([
 					}
 				}
 			};
+			// Jerry 2016-04-29 16:08PM callback
 			that._processSuccess(oRequest, oResponse, fnSingleSuccess, mGetEntities, mChangeEntities, mEntityTypes);
 		};
 		var handleError = function(oError) {
